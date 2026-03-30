@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Include FontAwesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            background-color: #000;
+        }
+
+        .embed-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #youtube-player {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 30px;
+            width: 90%;
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.5s ease;
+        }
+
+        #loadingOverlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+        }
+
+    .loader {
+        border: 8px solid rgba(255, 255, 255, 0.3);
+        border-top: 8px solid #ffffff;
+        border-radius: 50%;
+        width: 60px;
+        height: 60px;
+        animation: spin 1s linear infinite;
+    }
+
+
+        .controls.hide {
+            opacity: 0;
+        }
+
+        .controls.hidden {
+            visibility: hidden;
+        }
+
+        .controls button {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 25px;
+            cursor: pointer;
+            margin: 0 15px;
+            transition: transform 0.3s ease;
+        }
+
+        .controls button:hover {
+            transform: scale(1.2);
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 5px;
+            background: rgba(68, 68, 68, 0.5);
+            border-radius: 5px;
+            margin-left: 10px;
+            position: relative;
+            cursor: pointer;
+            transition: height 0.2s ease;
+        }
+
+        .progress-container:hover {
+            height: 8px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: #227AFF;
+            width: 0;
+            border-radius: 5px;
+            transition: width 0.1s linear;
+        }
+
+        .progress-buffer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 5px;
+            width: 0;
+            transition: width 0.1s linear;
+        }
+
+        .progress-circle {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 15px;
+            height: 15px;
+            background-color: #227AFF;
+            border-radius: 50%;
+            transform: translateY(-50%) scale(0);
+            transition: transform 0.2s ease;
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+        }
+
+        .progress-container:hover .progress-circle,
+        .progress-container.dragging .progress-circle {
+            transform: translateY(-50%) scale(1);
+        }
+
+        .fullscreen-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        /* Fullscreen button hover effect */
+        .fullscreen-btn:hover {
+            transform: scale(1.2);
+        }
+
+        /* Mute button inside the controls */
+        .mute-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 25px;
+            cursor: pointer;
+        }
+
+        .mute-btn:hover {
+            transform: scale(1.2);
+        }
+
+        /* Ensure responsiveness on smaller screens */
+        @media (max-width: 768px) {
+            .controls {
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 80%;  /* Adjust width for mobile */
+            }
+
+            .controls button {
+                font-size: 20px;  /* Smaller buttons on mobile */
+                margin: 0 10px;
+            }
+
+            .progress-container {
+                height: 4px; /* Smaller progress bar height */
+            }
+
+            .progress-circle {
+                width: 12px;
+                height: 12px;
+            }
+        }
+
+        @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+    </style>
+    <title>Aladwaa Player</title>
+</head>
+<body>
+
+<div class="embed-container" id="video-player">
+
+    <button id="closeBtn" style="
+                position: absolute;
+                top: 35px;
+                left: 25px;
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                cursor: pointer;
+                z-index: 10;
+                display: none;
+    ">
+        <i class="fas fa-times"></i>
+    </button>
+
+    <div id="loadingOverlay">
+        <div class="loader"></div>
+    </div>
+
+    <div id="youtube-player"></div>
+    <div id="overlay" style="position: absolute; bottom: 0; right: 0; width: 130px; height: 60px; background-color: #ffffff00; z-index: 0;"></div>
+    <div id="Share1" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; background-color: #ffffff00; z-index: 0;"></div>
+    <div id="Share12" style="position: absolute; bottom: 0; left: 0; width: 100%; height: 25%; background-color: #ffffff00; z-index: 0;"></div>
+</div>
+
+<!-- Controls container -->
+<div class="controls" id="controls">
+    <!-- Play/Pause button using FontAwesome -->
+    <button id="playPauseBtn" class="play-pause-btn">
+        <i class="fas fa-play"></i> <!-- Play icon -->
+    </button>
+
+    <button class="mute-btn" id="muteBtn">
+        <i class="fas fa-volume-up"></i> <!-- Mute icon -->
+    </button>
+
+    <!-- Progress bar -->
+    <div class="progress-container" id="progressContainer">
+        <div id="progressBuffer" class="progress-buffer"></div>
+        <div id="progressBar" class="progress-bar"></div>
+        <div id="progressCircle" class="progress-circle"></div>
+    </div>
+
+    <!-- Fullscreen button inside controls -->
+    <button class="fullscreen-btn" id="fullscreenBtn">
+        <i class="fas fa-expand"></i> <!-- Fullscreen icon -->
+    </button>
+    <div id="Share" style="position: absolute; top: 0; left: 0; width: 100%; height: 25%; background-color: #ffffff00; z-index: 0;"></div>
+</div>
+
+<script>
+
+    const progressContainer = document.getElementById('progressContainer');
+const progressBar = document.getElementById('progressBar');
+const progressCircle = document.getElementById('progressCircle');
+
+let isDragging = false;
+
+    document.getElementById('closeBtn').addEventListener('click', function () {
+            try{
+          if (window.flutter_inappwebview) {
+            window.flutter_inappwebview.callHandler('back_button');
+          } else {
+              console.error('flutter_inappwebview is not defined.');
+          }
+          }catch(e){}
+
+          try{
+            CloseVideo.postMessage('close');
+          }catch(e){
+          }
+
+      });
+
+// Load the YouTube IFrame API
+var tag = document.createElement('script');
+tag.src = 'https://www.youtube.com/iframe_api';
+var firstScriptTag = document.getElementsByTagName('script')[0];
+firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+var player;
+var controlsVisible = false;
+var controlsTimeout;
+var timerId;
+var lastNewTime;
+var playerState;
+var progressBarTimer;
+
+function onYouTubeIframeAPIReady() {
+    hideControls()
+    player = new YT.Player('youtube-player', {
+        height: '100%',
+        width: '100%',
+        playerVars: {
+            autoplay: 0,
+            controls: 0, // Hide player controls
+            modestbranding: 1, // Minimize branding
+            rel: 0, // Disable related videos
+            showinfo: 0, // Hide video info
+            cc_load_policy: 0, // Disable closed captions
+            iv_load_policy: 3, // Disable annotations
+            playsinline: 1
+        },
+        events: {
+            onReady: onPlayerReady,
+            onStateChange: onPlayerStateChange,
+            onError: onPlayerError
+        }
+    });
+}
+
+function onPlayerReady(event) {
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    loadingOverlay.style.display = 'none';
+    hideControls()
+}
+
+function playVideoSrc(id,startTime){
+    player.loadVideoById({
+        videoId: id,
+        startSeconds: startTime,
+    });
+    updateProgressBar();
+
+    document.getElementById('controls').classList.add('show');
+    controlsVisible = true;
+}
+
+function onPlayerStateChange(event) {
+    clearTimeout(timerId);
+    clearInterval(timerId);
+
+    playerState = event.data;
+
+    var state = {
+        'currentTime': player.getCurrentTime(),
+        'duration': player.getDuration(),
+        'state': event.data,
+    };
+
+    if (event.data == 1) {
+        timerId = setInterval(function () {
+            if (!isDragging) {
+                updateProgressBar();
+            }
+            var updatedState = {
+                'currentTime': player.getCurrentTime(),
+                'duration': player.getDuration(),
+                'state': event.data,
+            };
+            var messageString = JSON.stringify(updatedState);
+
+            try {
+                if (window.flutter_inappwebview) {
+                    window.flutter_inappwebview.callHandler('video_status', messageString);
+                } else {
+                    console.error('flutter_inappwebview is not defined.');
+                }
+            } catch(e) {}
+
+            try {
+                VideoState.postMessage(messageString);
+            } catch(e) {}
+        }, 100);
+    }
+
+    if (event.data == YT.PlayerState.PLAYING) {
+        console.log('Video is playing');
+        document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-pause"></i>';  // Change to Pause icon
+        hideControls()
+    }
+
+    if (event.data == YT.PlayerState.PAUSED) {
+        console.log('Video is paused');
+        document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';  // Change to Play icon
+        showControls()
+
+    }
+
+    if (event.data == YT.PlayerState.ENDED) {
+        console.log('Video has ended');
+        document.getElementById('playPauseBtn').innerHTML = '<i class="fas fa-play"></i>';  // Reset to Play icon when video ends
+        showControls()
+    }
+}
+
+function updateProgressBar() {
+    if (!player || !player.getCurrentTime || isDragging) return;
+    
+    const currentTime = player.getCurrentTime();
+    const duration = player.getDuration();
+    const percentage = (currentTime / duration) * 100;
+    
+    progressBar.style.width = `${percentage}%`;
+    progressCircle.style.left = `${percentage}%`;
+    
+    // Update buffer
+    if (player.getVideoLoadedFraction) {
+        const buffered = player.getVideoLoadedFraction() * 100;
+        document.getElementById('progressBuffer').style.width = `${buffered}%`;
+    }
+}
+
+function updateProgress(e) {
+    const rect = progressContainer.getBoundingClientRect();
+    const offsetX = Math.min(Math.max(e.clientX - rect.left, 0), rect.width);
+    const percentage = offsetX / rect.width;
+    const newTime = percentage * player.getDuration();
+
+    lastNewTime = newTime;
+
+    // Update visual elements immediately
+    requestAnimationFrame(() => {
+        progressBar.style.width = `${percentage * 100}%`;
+        progressCircle.style.left = `${percentage * 100}%`;
+    });
+    
+    // Update buffer during seeking
+    if (player.getVideoLoadedFraction) {
+        const buffered = player.getVideoLoadedFraction() * 100;
+        document.getElementById('progressBuffer').style.width = `${buffered}%`;
+    }
+    
+    return newTime;
+}
+
+progressContainer.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    progressContainer.classList.add('dragging');
+    const newTime = updateProgress(e);
+    player.seekTo(newTime, true);
+    // Clear any existing interval
+    if (timerId) {
+        clearInterval(timerId);
+    }
+});
+
+progressContainer.addEventListener('mousemove', (e) => {
+    if (isDragging) {
+        const newTime = updateProgress(e);
+        lastNewTime = newTime;
+        player.seekTo(newTime, true);
+    }
+});
+
+document.addEventListener('mouseup', (e) => {
+    if (isDragging) {
+        isDragging = false;
+        progressContainer.classList.remove('dragging');
+        const newTime = updateProgress(e);
+        updateStatus(lastNewTime);
+        // Restart the interval after dragging
+        if (playerState === 1) {
+            timerId = setInterval(updateProgressBar, 100);
+        }
+    }
+});
+
+progressContainer.addEventListener('touchstart', (e) => {
+    isDragging = true;
+    progressContainer.classList.add('dragging');
+    const touch = e.touches[0];
+    const newTime = updateProgress(touch);
+    player.seekTo(newTime, true);
+    // Clear any existing interval
+    if (timerId) {
+        clearInterval(timerId);
+    }
+});
+
+progressContainer.addEventListener('touchmove', (e) => {
+    if (isDragging) {
+        const touch = e.touches[0];
+        const newTime = updateProgress(touch);
+        player.seekTo(newTime, true);
+    }
+});
+
+document.addEventListener('touchend', (e) => {
+    if (isDragging) {
+        isDragging = false;
+        progressContainer.classList.remove('dragging');
+        updateStatus(lastNewTime);
+        // Restart the interval after dragging
+        if (playerState === 1) {
+            timerId = setInterval(updateProgressBar, 100);
+        }
+    }
+});
+
+function seekToPosition(seconds) {
+    if (typeof player !== 'undefined' && player.seekTo) {
+        player.seekTo(seconds, true);
+         updateProgressBar();
+
+        document.getElementById('controls').classList.add('show');
+        controlsVisible = true;
+    } else {
+        console.error("Player is not ready to seek.");
+    }
+}
+
+    function showCloseButton() {
+        const closeBtn = document.getElementById('closeBtn');
+        closeBtn.style.display = 'block';
+    }
+
+
+
+function hideControls() {
+    document.getElementById('controls').classList.add('hide');
+
+setTimeout(function () {
+    document.getElementById('controls').classList.add('hidden');
+}, 500);
+}
+
+function showControls() {
+        const controls = document.getElementById('controls');
+        controls.classList.remove('hidden');
+    setTimeout(function () {
+        controls.classList.remove('hide');
+    }, 10);
+}
+
+
+function onPlayerError(event) {
+    console.error('Error occurred:', event.data);
+}
+
+document.getElementById('playPauseBtn').addEventListener('click', function () {
+    if (player && player.getPlayerState) {
+        if (player.getPlayerState() === YT.PlayerState.PAUSED) {
+            player.playVideo();
+        } else {
+            player.pauseVideo();
+        }
+    }
+});
+
+document.getElementById('muteBtn').addEventListener('click', function () {
+    if (player.isMuted()) {
+        player.unMute();
+        document.getElementById('muteBtn').innerHTML = '<i class="fas fa-volume-up"></i>'; // Unmute icon
+    } else {
+        player.mute();
+        document.getElementById('muteBtn').innerHTML = '<i class="fas fa-volume-mute"></i>'; // Mute icon
+    }
+});
+
+document.getElementById('fullscreenBtn').addEventListener('click', function () {
+
+
+      try{
+         if (window.flutter_inappwebview) {
+      window.flutter_inappwebview.callHandler('fullscreen_open');
+  } else {
+      console.error('flutter_inappwebview is not defined.');
+  }
+          }catch(e){}
+
+  try{
+          FullScreen.postMessage('open');
+  }catch(e){
+  }
+
+});
+
+document.getElementById('progressContainer').addEventListener('click', function (event) {
+    const progressBarWidth = this.offsetWidth;
+    const clickX = event.offsetX;
+    const newTime = (clickX / progressBarWidth) * player.getDuration();
+    player.seekTo(newTime, true);
+    lastNewTime = newTime
+
+    updateStatus(newTime)
+
+});
+
+function updateStatus(newTime){
+       var updatedState = {
+        'currentTime': newTime,
+        'duration': player.getDuration(),
+        'state': playerState,
+        };
+        var messageString = JSON.stringify(updatedState);
+
+        console.log(newTime);
+        try{
+        if (window.flutter_inappwebview) {
+         window.flutter_inappwebview.callHandler('video_status',messageString);
+      } else {
+         console.error('flutter_inappwebview is not defined.');
+      }
+    }catch(e){}
+    try{
+         VideoState.postMessage(messageString);
+         console.log('video status ', messageString)
+    }catch(e){}
+}
+
+</script>
+</body>
+</html>
