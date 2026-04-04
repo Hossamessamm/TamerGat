@@ -528,12 +528,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildBrainIllustration(),
-              const SizedBox(height: 48),
               _buildGoldBadge('Skill Building'),
-              const SizedBox(height: 24),
               const Text(
                 'Master Reasoning &\nProblem Solving',
                 textAlign: TextAlign.center,
@@ -545,7 +543,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 20),
               Text(
                 'Develop logical thinking, creativity, and analytical skills for success in Science, Technology, and Engineering.',
                 textAlign: TextAlign.center,
@@ -556,7 +553,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 32),
               _buildSkillChips(),
             ],
           ),
@@ -703,14 +699,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildExpertProfile(),
-              const SizedBox(height: 40),
               _buildGoldBadge('Certified Expert'),
-              const SizedBox(height: 24),
               const Text(
                 'Learn From a Certified\nGAT Expert',
                 textAlign: TextAlign.center,
@@ -722,7 +716,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 20),
               Text(
                 'Certified GAT consultant and trainer since 2008. Hundreds of students achieved top scores, including 100%.',
                 textAlign: TextAlign.center,
@@ -733,7 +726,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 32),
               _buildTrustIndicators(),
             ],
           ),
@@ -886,14 +878,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildTajmeatIllustration(),
-              const SizedBox(height: 40),
               _buildWeeklyBadge(),
-              const SizedBox(height: 24),
               const Text(
                 'Exclusive Weekly\nUpdated Tajmeat',
                 textAlign: TextAlign.center,
@@ -905,7 +895,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 20),
               Text(
                 'The first trainer to create structured Tajmeat collections — updated weekly with new GAT questions.',
                 textAlign: TextAlign.center,
@@ -916,7 +905,6 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 32),
               _buildFeatureHighlights(),
             ],
           ),

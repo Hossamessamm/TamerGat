@@ -82,6 +82,10 @@ class ApiConfig {
 
   // Orders
   static String get createOrderUrl => '$baseUrl$createOrderEndpoint';
+
+  // App config endpoint
+  static const String appConfigEndpoint = '/api/appconfig';
+  static String get appConfigUrl => '$baseUrl$appConfigEndpoint';
   static String get myOrdersUrl => '$baseUrl$myOrdersEndpoint';
   static String orderByIdUrl(String id) => '$baseUrl${orderByIdEndpoint(id)}';
 

@@ -1,4 +1,4 @@
-package com.tamergat.tamergat_app
+package com.educraft.tamergat
 
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity

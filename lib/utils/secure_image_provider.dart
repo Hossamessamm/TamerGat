@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/io_client.dart';
 import 'http_client_helper.dart';
+import 'package:flutter/material.dart';
 
 /// A custom image provider that handles self-signed SSL certificates
 class SecureNetworkImage extends ImageProvider<SecureNetworkImage> {

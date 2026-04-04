@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:tamergat_app/screens/login_screen.dart';
 import '../services/auth_service.dart';
+import '../services/app_config_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -177,6 +179,45 @@ class ProfileBody extends StatelessWidget {
                       ],
                     ),
 
+                    Consumer<AppConfigService>(
+                      builder: (context, appConfig, _) {
+                        if (!appConfig.isInReviewVersionEqual()) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: () async {
+                                final authService = Provider.of<AuthService>(context, listen: false);
+                                final confirm = await showDialog<bool>(
+                                  context: context,
+                                  builder: (ctx) => AlertDialog(
+                                    title: const Text('Delete Account'),
+                                    content: const Text('Are you sure you want to delete your account?'),
+                                    actions: [
+                                      TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+                                      TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete', style: TextStyle(color: Colors.red))),
+                                    ],
+                                  ),
+                                );
+                                if (confirm == true) {
+                                  await authService.logout();
+                                  if (context.mounted) {
+                                    Navigator.of(context).pushReplacement(
+                                      MaterialPageRoute(builder: (context) => const LoginScreen()),
+                                    );
+                                  }
+                                }
+
+                              },
+                              icon: const Icon(Icons.delete_outline_rounded, color: Colors.white),
+                              label: const Text('Delete Account', style: TextStyle(color: Colors.white)),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 100),
                   ],
                 ),
