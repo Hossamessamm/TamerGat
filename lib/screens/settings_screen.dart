@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:tamergat_app/services/app_config_service.dart';
 
 import '../utils/app_theme.dart';
 import 'legal_document_screen.dart';
@@ -55,21 +57,32 @@ class SettingsScreen extends StatelessWidget {
                 );
               },
             ),
-            const SizedBox(height: 12),
-            _SettingsTile(
-              icon: Icons.currency_exchange_rounded,
-              iconBg: const Color(0xFFFFEDD5),
-              iconColor: const Color(0xFFEA580C),
-              title: 'Refund policy',
-              subtitle: 'سياسة الاسترجاع — refunds & eligibility',
-              onTap: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => const LegalDocumentScreen(
+            Consumer<AppConfigService>(
+              builder: (context, appConfig, _) {
+                if (appConfig.isInReviewVersionEqual()) {
+                  return const SizedBox();
+                }
+                return Column(
+                  children: [
+                    const SizedBox(height: 12),
+                    _SettingsTile(
+                      icon: Icons.currency_exchange_rounded,
+                      iconBg: const Color(0xFFFFEDD5),
+                      iconColor: const Color(0xFFEA580C),
                       title: 'Refund policy',
-                      assetPath: 'assets/legal/refund_policy.txt',
+                      subtitle: 'سياسة الاسترجاع — refunds & eligibility',
+                      onTap: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => const LegalDocumentScreen(
+                              title: 'Refund policy',
+                              assetPath: 'assets/legal/refund_policy.txt',
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
+                  ],
                 );
               },
             ),
@@ -143,7 +156,10 @@ class _SettingsTile extends StatelessWidget {
         side: BorderSide(color: AppTheme.dividerColor.withValues(alpha: 0.6)),
       ),
       child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 10,
+        ),
         onTap: onTap,
         leading: Container(
           width: 52,

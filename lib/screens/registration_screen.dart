@@ -289,26 +289,32 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                                   prefixIcon:
                                                       Icons.phone_outlined,
                                                   validator: (v) {
-                                                    if (v == null || v.isEmpty) {
+                                                    if (v == null ||
+                                                        v.isEmpty) {
                                                       return 'Please enter your phone number';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 14),
+                                                CustomTextField(
+                                                  label: 'Parent Phone Number',
+                                                  controller:
+                                                      _parentPhoneController,
+                                                  keyboardType:
+                                                      TextInputType.phone,
+                                                  prefixIcon: Icons
+                                                      .phone_android_outlined,
+                                                  validator: (v) {
+                                                    if (v == null ||
+                                                        v.isEmpty) {
+                                                      return 'Please enter parent phone number';
                                                     }
                                                     return null;
                                                   },
                                                 ),
                                               ],
                                             ),
-                                    ),
-                                    const SizedBox(height: 14),
-                                    CustomTextField(
-                                      label: 'Parent Phone Number',
-                                      controller: _parentPhoneController,
-                                      keyboardType: TextInputType.phone,
-                                      prefixIcon: Icons.phone_android_outlined,
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty)
-                                          return 'Please enter parent phone number';
-                                        return null;
-                                      },
                                     ),
                                     const SizedBox(height: 14),
                                     CustomTextField(

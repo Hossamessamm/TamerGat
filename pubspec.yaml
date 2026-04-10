@@ -60,7 +60,7 @@ dependencies:
   
   # URL Launcher
   url_launcher: ^6.3.2
-  package_info_plus: ^4.0.0
+  package_info_plus: ^9.0.1
 
   # Deep links (custom scheme + cold start)
   app_links: ^6.4.0
