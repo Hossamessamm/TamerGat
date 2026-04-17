@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
@@ -39,6 +41,11 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
   late Animation<double> _fadeAnimation;
   Map<int, AnimationController> _flipControllers = {}; // Animation controllers for flip buttons
 
+  Timer? _quizCountdownTimer;
+  /// Remaining seconds while the quiz is active; null when no server-side timer.
+  int? _secondsRemaining;
+  bool _quizSubmitInProgress = false;
+
   @override
   void initState() {
     super.initState();
@@ -57,6 +64,7 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
 
   @override
   void dispose() {
+    _cancelQuizTimer();
     ScreenProtector.preventScreenshotOff();
     _fadeController.dispose();
     // Dispose all flip controllers
@@ -167,6 +175,129 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
     }
   }
 
+  void _cancelQuizTimer() {
+    _quizCountdownTimer?.cancel();
+    _quizCountdownTimer = null;
+  }
+
+  /// User is on the question flow (not intro, results, loading, or error).
+  bool get _isInActiveQuizSession {
+    if (_isLoading || _error != null || _showSplash || _showResults) return false;
+    final q = _quizData?.data;
+    return q != null && q.isNotEmpty;
+  }
+
+  Future<bool?> _showExitQuizConfirmationDialog() {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Directionality(
+        textDirection: TextDirection.ltr,
+        child: AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text(
+            'Close quiz?',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1F2937),
+            ),
+          ),
+          content: const Text(
+            'Submit your answers now, or cancel to continue the quiz.',
+            style: TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text(
+                'Cancel',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF38026B),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(
+                'Submit',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmExitActiveQuiz() async {
+    final submit = await _showExitQuizConfirmationDialog();
+    if (!mounted) return;
+    if (submit == true) {
+      await _submitQuiz();
+    }
+  }
+
+  Future<void> _handleQuizExitRequest() async {
+    if (!_isInActiveQuizSession) {
+      if (mounted) Navigator.of(context).pop();
+      return;
+    }
+    await _confirmExitActiveQuiz();
+  }
+
+  /// Countdown uses [QuizLessonResponse.quizDurationSeconds] (API `quizTimer` is **seconds**). Starts when the user begins the quiz.
+  void _startQuizCountdownIfNeeded() {
+    _cancelQuizTimer();
+    final limit = _quizData?.quizDurationSeconds;
+    if (limit == null || limit <= 0) {
+      setState(() => _secondsRemaining = null);
+      return;
+    }
+    setState(() => _secondsRemaining = limit);
+    _quizCountdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        final s = _secondsRemaining;
+        if (s == null || s <= 0) return;
+        _secondsRemaining = s - 1;
+      });
+      final after = _secondsRemaining;
+      if (after != null && after <= 0) {
+        timer.cancel();
+        _quizCountdownTimer = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _submitQuiz(forceTimeExpired: true);
+        });
+      }
+    });
+  }
+
+  /// API sends [quizTimer] in **seconds**; show minutes when ≥ 60 s.
+  String _splashTimeLimitText(int seconds) {
+    if (seconds < 60) {
+      return 'Time limit: $seconds sec';
+    }
+    return 'Time limit: ${(seconds / 60).round()} min';
+  }
+
+  /// Remaining time as **total minutes : seconds** (e.g. `90:00`), never `H:MM:SS` hours.
+  String _formatCountdownClock(int seconds) {
+    if (seconds < 0) seconds = 0;
+    final totalMinutes = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${totalMinutes.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+  }
+
   void _startQuiz() {
     setState(() {
       _showSplash = false;
@@ -182,10 +313,13 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
       _flipControllers.clear();
     });
     _fadeController.forward(from: 0);
+    _startQuizCountdownIfNeeded();
   }
 
   void _retakeQuiz() {
+    _cancelQuizTimer();
     setState(() {
+      _secondsRemaining = null;
       _showResults = false;
       _currentQuestionIndex = 0;
       _selectedAnswers.clear();
@@ -368,66 +502,84 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
     }
   }
 
-  Future<void> _submitQuiz() async {
-    // Calculate score
-    int correctAnswers = 0;
-    final totalQuestions = _quizData?.data?.length ?? 0;
-    final passDegree =
-        _quizData?.passDegree ?? kDefaultQuizPassDegreePercent;
+  /// When [forceTimeExpired] is true, the quiz is auto-submitted because the timer reached zero.
+  Future<void> _submitQuiz({bool forceTimeExpired = false}) async {
+    if (_showResults || _quizSubmitInProgress) return;
+    _quizSubmitInProgress = true;
+    _cancelQuizTimer();
 
-    _quizData?.data?.asMap().forEach((index, question) {
-      final selectedAnswerIndex = _selectedAnswers[index];
-      if (selectedAnswerIndex != null && question.answers[selectedAnswerIndex].isCorrect) {
-        correctAnswers++;
-      }
-    });
-
-    // Calculate percentage score (0-100)
-    final percentageScore = totalQuestions > 0
-        ? (correctAnswers / totalQuestions) * 100
-        : 0.0;
-
-    final passed = percentageScore >= passDegree;
-
-    setState(() {
-      _score = correctAnswers;
-      _showResults = true;
-    });
-    _fadeController.forward(from: 0);
-
-    // Submit quiz result to API (server decides persistence; we never trust URL-only success)
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
-      final token = authService.token;
+      int correctAnswers = 0;
+      final totalQuestions = _quizData?.data?.length ?? 0;
+      final passDegree =
+          _quizData?.passDegree ?? kDefaultQuizPassDegreePercent;
 
-      if (token != null) {
-        final response = await CourseService.submitQuiz(
-          lessonId: widget.lessonId,
-          score: percentageScore,
-          notes: 'passed:$passed;passDegree:$passDegree',
-          token: token,
-        );
+      _quizData?.data?.asMap().forEach((index, question) {
+        final selectedAnswerIndex = _selectedAnswers[index];
+        if (selectedAnswerIndex != null &&
+            question.answers[selectedAnswerIndex].isCorrect) {
+          correctAnswers++;
+        }
+      });
 
+      final percentageScore = totalQuestions > 0
+          ? (correctAnswers / totalQuestions) * 100
+          : 0.0;
+
+      final passed = percentageScore >= passDegree;
+
+      final baseNotes = 'passed:$passed;passDegree:$passDegree';
+      final notes =
+          forceTimeExpired ? 'Time expired;$baseNotes' : baseNotes;
+
+      if (!mounted) return;
+
+      setState(() {
+        _score = correctAnswers;
+        _showResults = true;
+      });
+      _fadeController.forward(from: 0);
+
+      try {
+        final authService = Provider.of<AuthService>(context, listen: false);
+        final token = authService.token;
+
+        if (token != null) {
+          final response = await CourseService.submitQuiz(
+            lessonId: widget.lessonId,
+            score: percentageScore,
+            notes: notes,
+            token: token,
+          );
+
+          if (!mounted) return;
+
+          final defaultSuccessMsg = forceTimeExpired
+              ? 'Time is up — quiz submitted with your current answers.'
+              : 'Quiz submitted successfully';
+
+          _showSubmissionDialog(
+            success: response.success,
+            message: response.success
+                ? (response.message.isNotEmpty ? response.message : defaultSuccessMsg)
+                : (response.message.isEmpty
+                    ? 'Failed to submit quiz'
+                    : response.message),
+            passed: passed,
+            passDegree: passDegree,
+            forceTimeExpired: forceTimeExpired,
+          );
+        }
+      } catch (e) {
         if (!mounted) return;
 
         _showSubmissionDialog(
-          success: response.success,
-          message: response.success
-              ? 'Quiz submitted successfully'
-              : (response.message.isEmpty
-                  ? 'Failed to submit quiz'
-                  : response.message),
-          passed: passed,
-          passDegree: passDegree,
+          success: false,
+          message: 'Connection error',
         );
       }
-    } catch (e) {
-      if (!mounted) return;
-
-      _showSubmissionDialog(
-        success: false,
-        message: 'Connection error',
-      );
+    } finally {
+      _quizSubmitInProgress = false;
     }
   }
 
@@ -436,6 +588,7 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
     required String message,
     bool? passed,
     double? passDegree,
+    bool forceTimeExpired = false,
   }) {
     final submitPassed = passed;
     final requiredPassPercent = passDegree;
@@ -500,6 +653,17 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
                   textAlign: TextAlign.center,
                 ),
                 
+                if (success && forceTimeExpired) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    message,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Color(0xFF6B7280),
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
                 if (!success) ...[
                   const SizedBox(height: 12),
                   Text(
@@ -571,18 +735,25 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
   Widget build(BuildContext context) {
     return Directionality(
       textDirection: TextDirection.ltr,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FE),
-        body: SafeArea(
-          child: _isLoading
-              ? _buildLoadingState()
-              : _error != null
-                  ? _buildErrorState()
-                  : _showSplash
-                      ? _buildSplashScreen()
-                      : _showResults
-                          ? _buildResultsScreen()
-                          : _buildQuizScreen(),
+      child: PopScope(
+        canPop: !_isInActiveQuizSession,
+        onPopInvokedWithResult: (bool didPop, Object? result) async {
+          if (didPop) return;
+          await _confirmExitActiveQuiz();
+        },
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF8F9FE),
+          body: SafeArea(
+            child: _isLoading
+                ? _buildLoadingState()
+                : _error != null
+                    ? _buildErrorState()
+                    : _showSplash
+                        ? _buildSplashScreen()
+                        : _showResults
+                            ? _buildResultsScreen()
+                            : _buildQuizScreen(),
+          ),
         ),
       ),
     );
@@ -612,7 +783,7 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
             ),
             child: const Icon(Icons.close, color: Color(0xFF1F2937), size: 20),
           ),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleQuizExitRequest,
         ),
       ),
       body: SafeArea(
@@ -683,6 +854,19 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
                     ),
                   ),
                 ),
+                
+                if ((_quizData?.quizTimer ?? 0) > 0) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _splashTimeLimitText(_quizData!.quizTimer!),
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFFDC2626),
+                    ),
+                  ),
+                ],
                 
                 const SizedBox(height: 24),
                 
@@ -877,7 +1061,7 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Color(0xFF1F2937)),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _handleQuizExitRequest,
         ),
         title: Text(
           'Question ${_currentQuestionIndex + 1} of $totalQuestions',
@@ -888,6 +1072,56 @@ class _QuizViewerScreenState extends State<QuizViewerScreen> with TickerProvider
           ),
         ),
         centerTitle: true,
+        actions: [
+          if (_secondsRemaining != null &&
+              (_quizData?.quizDurationSeconds ?? 0) > 0)
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: (_secondsRemaining! <= 60)
+                        ? const Color(0xFFFEE2E2)
+                        : const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: (_secondsRemaining! <= 60)
+                          ? const Color(0xFFEF4444)
+                          : const Color(0xFFE5E7EB),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.timer_outlined,
+                        size: 18,
+                        color: (_secondsRemaining! <= 60)
+                            ? const Color(0xFFEF4444)
+                            : const Color(0xFF6B7280),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _formatCountdownClock(_secondsRemaining! < 0
+                            ? 0
+                            : _secondsRemaining!),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                          color: (_secondsRemaining! <= 60)
+                              ? const Color(0xFFEF4444)
+                              : const Color(0xFF1F2937),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(4),
           child: Container(

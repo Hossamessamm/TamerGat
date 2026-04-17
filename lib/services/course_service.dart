@@ -543,6 +543,16 @@ class CourseService {
             final dataMap = apiResponse['data'] as Map<String, dynamic>;
             return EnrolledCoursesResponse.fromJson(dataMap);
           }
+          // 200 with success:false and data:null (e.g. "No active courses found.") — treat as empty list
+          final message = apiResponse['message'] as String?;
+          return EnrolledCoursesResponse(
+            totalCount: 0,
+            totalPages: 0,
+            currentPage: pageNumber,
+            pageSize: pageSize,
+            courses: const [],
+            apiMessage: message,
+          );
         } else if (jsonData is Map<String, dynamic>) {
           // Fallback to direct response format
           return EnrolledCoursesResponse.fromJson(jsonData);
