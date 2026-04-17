@@ -51,12 +51,16 @@ class EnrolledCoursesResponse {
   final int pageSize;
   final List<Course> courses;
 
+  /// Optional message from the API (e.g. when [courses] is empty but the call succeeded).
+  final String? apiMessage;
+
   EnrolledCoursesResponse({
     required this.totalCount,
     required this.totalPages,
     required this.currentPage,
     required this.pageSize,
     required this.courses,
+    this.apiMessage,
   });
 
   factory EnrolledCoursesResponse.fromJson(Map<String, dynamic> json) {
@@ -95,6 +99,7 @@ class EnrolledCoursesResponse {
       totalPages: totalPages,
       currentPage: currentPage,
       pageSize: pageSize,
+      apiMessage: null,
       courses: coursesList
           .map<Course>((c) {
             if (c is Map<String, dynamic>) {

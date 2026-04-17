@@ -24,6 +24,8 @@ class _GradeCoursesByGradeScreenState extends State<GradeCoursesByGradeScreen> {
   List<Course> _courses = [];
   bool _isLoading = false;
   String? _error;
+  /// Shown when the list is empty but the request succeeded (e.g. API message for no courses).
+  String? _emptyInfoMessage;
 
   @override
   void initState() {
@@ -43,6 +45,7 @@ class _GradeCoursesByGradeScreenState extends State<GradeCoursesByGradeScreen> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _emptyInfoMessage = null;
     });
 
     try {
@@ -68,6 +71,8 @@ class _GradeCoursesByGradeScreenState extends State<GradeCoursesByGradeScreen> {
       if (response != null) {
         setState(() {
           _courses = response.courses;
+          _emptyInfoMessage =
+              response.courses.isEmpty ? response.apiMessage : null;
           _isLoading = false;
         });
       } else {
@@ -148,7 +153,7 @@ class _GradeCoursesByGradeScreenState extends State<GradeCoursesByGradeScreen> {
               Icon(Icons.book_outlined, size: 64, color: Colors.grey[300]),
               const SizedBox(height: 16),
               Text(
-                'No courses available for this grade',
+                _emptyInfoMessage ?? 'No courses available for this grade',
                 style: TextStyle(
                   fontSize: 16,
                   color: Colors.grey[600],

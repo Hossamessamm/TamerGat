@@ -200,6 +200,18 @@ class QuizLessonResponse {
   /// Minimum percentage (0–100) required to count as passed for unlocking next lessons (e.g. 50.0 = 50%).
   final double passDegree;
 
+  /// Quiz time limit in **seconds** from the API (`quizTimer` / `QuizTimer`).
+  final int? quizTimer;
+
+  /// Same value as [quizTimer] — total seconds for the live countdown.
+  int? get quizDurationSeconds {
+    if (quizTimer == null || quizTimer! <= 0) return null;
+    return quizTimer;
+  }
+
+  /// Same as [quizDurationSeconds] (legacy name).
+  int? get quizTimerSeconds => quizDurationSeconds;
+
   QuizLessonResponse({
     required this.success,
     this.message,
@@ -208,6 +220,7 @@ class QuizLessonResponse {
     this.isScoreDisplayed = true,
     this.isAnswerDisplayed = true,
     this.passDegree = kDefaultQuizPassDegreePercent,
+    this.quizTimer,
   });
 
   factory QuizLessonResponse.fromJson(Map<String, dynamic> json) {
@@ -217,6 +230,7 @@ class QuizLessonResponse {
     var isScoreDisplayed = true;
     var isAnswerDisplayed = true;
     var passDegree = kDefaultQuizPassDegreePercent;
+    var quizTimer = _parseOptionalInt(json['quizTimer'] ?? json['QuizTimer']);
 
     if (rawData is List) {
       questions = rawData
@@ -240,6 +254,10 @@ class QuizLessonResponse {
       passDegree = tryPassDegreeFromMap(m) ??
           tryPassDegreeFromMap(Map<String, dynamic>.from(json)) ??
           kDefaultQuizPassDegreePercent;
+      final qt = m['quizTimer'] ?? m['QuizTimer'];
+      if (qt != null) {
+        quizTimer = _parseOptionalInt(qt);
+      }
     }
 
     return QuizLessonResponse(
@@ -250,7 +268,15 @@ class QuizLessonResponse {
       isScoreDisplayed: isScoreDisplayed,
       isAnswerDisplayed: isAnswerDisplayed,
       passDegree: passDegree,
+      quizTimer: quizTimer,
     );
+  }
+
+  static int? _parseOptionalInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    return int.tryParse(value.toString());
   }
 
   /// Tree-with-progress can supply flags before lesson-content merge; non-null [o] fields win.
@@ -264,6 +290,7 @@ class QuizLessonResponse {
       isScoreDisplayed: o.isScoreDisplayed ?? isScoreDisplayed,
       isAnswerDisplayed: o.isAnswerDisplayed ?? isAnswerDisplayed,
       passDegree: o.passDegree ?? passDegree,
+      quizTimer: quizTimer,
     );
   }
 }

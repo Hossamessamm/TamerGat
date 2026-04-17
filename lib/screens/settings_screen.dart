@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../utils/app_theme.dart';
+import 'contact_us_screen.dart';
 import 'legal_document_screen.dart';
 import 'profile_screen.dart';
 
@@ -87,6 +88,21 @@ class SettingsScreen extends StatelessWidget {
                       title: 'Privacy policy',
                       assetPath: 'assets/legal/privacy_policy.txt',
                     ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+            _SettingsTile(
+              icon: Icons.support_agent_rounded,
+              iconBg: const Color(0xFFF3E8FF),
+              iconColor: const Color(0xFF9333EA),
+              title: 'Contact us',
+              subtitle: 'WhatsApp & social channels — from our server',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const ContactUsScreen(),
                   ),
                 );
               },
