@@ -1,6 +1,8 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tamergat_app/services/app_config_service.dart';
 import 'login_screen.dart';
 import 'registration_screen.dart';
 
@@ -15,7 +17,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     with TickerProviderStateMixin {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  
+
   late AnimationController _backgroundAnimController;
   late AnimationController _contentAnimController;
   late Animation<double> _fadeAnimation;
@@ -35,23 +37,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(seconds: 20),
       vsync: this,
     )..repeat();
-    
+
     _contentAnimController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _contentAnimController, curve: Curves.easeOut),
     );
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(
-      CurvedAnimation(parent: _contentAnimController, curve: Curves.easeOutCubic),
-    );
-    
+
+    _slideAnimation =
+        Tween<Offset>(begin: const Offset(0, 0.1), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _contentAnimController,
+            curve: Curves.easeOutCubic,
+          ),
+        );
+
     _contentAnimController.forward();
   }
 
@@ -205,17 +208,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       const Offset(0.5, 0.1),
       const Offset(0.7, 0.75),
     ];
-    
+
     return AnimatedBuilder(
       animation: _backgroundAnimController,
       builder: (context, child) {
         final progress = (_backgroundAnimController.value + index * 0.15) % 1.0;
         final yOffset = math.sin(progress * 2 * math.pi) * 20;
         final opacity = 0.1 + math.sin(progress * math.pi) * 0.1;
-        
+
         return Positioned(
           left: MediaQuery.of(context).size.width * positions[index].dx,
-          top: MediaQuery.of(context).size.height * positions[index].dy + yOffset,
+          top:
+              MediaQuery.of(context).size.height * positions[index].dy +
+              yOffset,
           child: Opacity(
             opacity: opacity,
             child: Text(
@@ -250,9 +255,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: RadialGradient(
-            colors: [color, Colors.transparent],
-          ),
+          gradient: RadialGradient(colors: [color, Colors.transparent]),
         ),
       ),
     );
@@ -358,36 +361,48 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         position: _slideAnimation,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildHeroIllustration(),
-              const SizedBox(height: 48),
-              _buildGoldBadge('Excellence Awaits'),
-              const SizedBox(height: 24),
-              const Text(
-                'The Highest Grades.\nGuaranteed.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white,
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Start your journey toward excellence in GAT Maths with structured lessons and proven strategies.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white.withValues(alpha: 0.75),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.6,
-                ),
-              ),
-            ],
+          child: Consumer<AppConfigService>(
+            builder: (context, appConfig, _) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildHeroIllustration(),
+                  SizedBox(
+                    height: appConfig.isInReviewVersionEqual() ? 20 : 48,
+                  ),
+                  if(!appConfig.isInReviewVersionEqual())...[
+                    _buildGoldBadge('Excellence Awaits'),
+                  ],
+                  SizedBox(
+                    height: appConfig.isInReviewVersionEqual() ? 10 : 24,
+                  ),
+                  const Text(
+                    'The Highest Grades.\nGuaranteed.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (!appConfig.isInReviewVersionEqual()) ...[
+                    const SizedBox(height: 20),
+                    Text(
+                      'Start your journey toward excellence in GAT Maths with structured lessons and proven strategies.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _white.withValues(alpha: 0.75),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -404,10 +419,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _gold.withValues(alpha: 0.2),
-                Colors.transparent,
-              ],
+              colors: [_gold.withValues(alpha: 0.2), Colors.transparent],
             ),
           ),
         ),
@@ -424,10 +436,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 _lightGold.withValues(alpha: 0.1),
               ],
             ),
-            border: Border.all(
-              color: _gold.withValues(alpha: 0.4),
-              width: 2,
-            ),
+            border: Border.all(color: _gold.withValues(alpha: 0.4), width: 2),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -442,7 +451,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: _gold,
                   borderRadius: BorderRadius.circular(12),
@@ -496,10 +508,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _gold.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: _gold.withValues(alpha: 0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -528,12 +537,10 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildBrainIllustration(),
-              const SizedBox(height: 48),
               _buildGoldBadge('Skill Building'),
-              const SizedBox(height: 24),
               const Text(
                 'Master Reasoning &\nProblem Solving',
                 textAlign: TextAlign.center,
@@ -545,18 +552,24 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Develop logical thinking, creativity, and analytical skills for success in Science, Technology, and Engineering.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white.withValues(alpha: 0.75),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.6,
-                ),
+              Consumer<AppConfigService>(
+                builder: (context, appConfig, _) {
+                  if (appConfig.isInReviewVersionEqual()) {
+                    return const SizedBox();
+                  }
+                  return Text(
+                    'Develop logical thinking, creativity, and analytical skills for success in Science, Technology, and Engineering.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _white.withValues(alpha: 0.75),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      height: 1.6,
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 32),
+
               _buildSkillChips(),
             ],
           ),
@@ -575,10 +588,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _accentBlue.withValues(alpha: 0.2),
-                Colors.transparent,
-              ],
+              colors: [_accentBlue.withValues(alpha: 0.2), Colors.transparent],
             ),
           ),
         ),
@@ -600,11 +610,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               width: 2,
             ),
           ),
-          child: const Icon(
-            Icons.psychology_rounded,
-            color: _white,
-            size: 56,
-          ),
+          child: const Icon(Icons.psychology_rounded, color: _white, size: 56),
         ),
         ..._buildOrbitingSymbols(),
       ],
@@ -614,19 +620,19 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   List<Widget> _buildOrbitingSymbols() {
     final symbols = ['∑', '÷', '×', 'π'];
     final angles = [0.0, 90.0, 180.0, 270.0];
-    
+
     return List.generate(4, (index) {
-      final angle = (angles[index] + _backgroundAnimController.value * 360) * math.pi / 180;
+      final angle =
+          (angles[index] + _backgroundAnimController.value * 360) *
+          math.pi /
+          180;
       final radius = 85.0;
-      
+
       return AnimatedBuilder(
         animation: _backgroundAnimController,
         builder: (context, child) {
           return Transform.translate(
-            offset: Offset(
-              math.cos(angle) * radius,
-              math.sin(angle) * radius,
-            ),
+            offset: Offset(math.cos(angle) * radius, math.sin(angle) * radius),
             child: Container(
               width: 36,
               height: 36,
@@ -657,7 +663,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildSkillChips() {
     final skills = ['Logical Thinking', 'Creativity', 'Analytics'];
-    
+
     return Wrap(
       spacing: 12,
       runSpacing: 12,
@@ -668,19 +674,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             color: _white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: _white.withValues(alpha: 0.2),
-              width: 1,
-            ),
+            border: Border.all(color: _white.withValues(alpha: 0.2), width: 1),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
-                Icons.check_circle_rounded,
-                color: _gold,
-                size: 16,
-              ),
+              Icon(Icons.check_circle_rounded, color: _gold, size: 16),
               const SizedBox(width: 8),
               Text(
                 skill,
@@ -703,39 +702,43 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildExpertProfile(),
-              const SizedBox(height: 40),
-              _buildGoldBadge('Certified Expert'),
-              const SizedBox(height: 24),
-              const Text(
-                'Learn From a Certified\nGAT Expert',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white,
-                  fontSize: 34,
-                  fontWeight: FontWeight.w800,
-                  height: 1.2,
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Certified GAT consultant and trainer since 2008. Hundreds of students achieved top scores, including 100%.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white.withValues(alpha: 0.75),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.6,
-                ),
-              ),
-              const SizedBox(height: 32),
-              _buildTrustIndicators(),
-            ],
+          padding: const EdgeInsets.symmetric(horizontal: 22),
+          child: Consumer<AppConfigService>(
+            builder: (context, appConfig, _) {
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildExpertProfile(),
+                  if (!appConfig.isInReviewVersionEqual()) ...[
+                    _buildGoldBadge('Certified Expert'),
+                  ],
+                  const Text(
+                    'Learn From a Certified\nGAT Expert',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _white,
+                      fontSize: 34,
+                      fontWeight: FontWeight.w800,
+                      height: 1.2,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  if (!appConfig.isInReviewVersionEqual()) ...[
+                    Text(
+                      'Certified GAT consultant and trainer since 2008. Hundreds of students achieved top scores, including 100%.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: _white.withValues(alpha: 0.75),
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                  _buildTrustIndicators(),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -752,10 +755,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _gold.withValues(alpha: 0.15),
-                Colors.transparent,
-              ],
+              colors: [_gold.withValues(alpha: 0.15), Colors.transparent],
             ),
           ),
         ),
@@ -767,15 +767,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                _royalBlue,
-                _deepBlue,
-              ],
+              colors: [_royalBlue, _deepBlue],
             ),
-            border: Border.all(
-              color: _gold,
-              width: 3,
-            ),
+            border: Border.all(color: _gold, width: 3),
             boxShadow: [
               BoxShadow(
                 color: _gold.withValues(alpha: 0.3),
@@ -784,11 +778,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
               ),
             ],
           ),
-          child: const Icon(
-            Icons.person_rounded,
-            color: _white,
-            size: 60,
-          ),
+          child: const Icon(Icons.person_rounded, color: _white, size: 60),
         ),
         Positioned(
           bottom: 15,
@@ -796,9 +786,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [_gold, _lightGold],
-              ),
+              gradient: const LinearGradient(colors: [_gold, _lightGold]),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
@@ -837,10 +825,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         const SizedBox(width: 16),
         _buildStatCard('100%', 'Top Scores'),
         const SizedBox(width: 16),
-        _buildStatCard(
-          '5000',
-          'GAT & SAAT\nstudent',
-        ),
+        _buildStatCard('5000', 'GAT & SAAT\nstudent'),
       ],
     );
   }
@@ -851,10 +836,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       decoration: BoxDecoration(
         color: _white.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: _gold.withValues(alpha: 0.2),
-          width: 1,
-        ),
+        border: Border.all(color: _gold.withValues(alpha: 0.2), width: 1),
       ),
       child: Column(
         children: [
@@ -886,14 +868,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       child: SlideTransition(
         position: _slideAnimation,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+          padding: const EdgeInsets.symmetric(horizontal: 22),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _buildTajmeatIllustration(),
-              const SizedBox(height: 40),
               _buildWeeklyBadge(),
-              const SizedBox(height: 24),
               const Text(
                 'Exclusive Weekly\nUpdated Tajmeat',
                 textAlign: TextAlign.center,
@@ -905,18 +885,23 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'The first trainer to create structured Tajmeat collections — updated weekly with new GAT questions.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white.withValues(alpha: 0.75),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.6,
-                ),
+              Consumer<AppConfigService>(
+                builder: (context, appConfig, _) {
+                  if (appConfig.isInReviewVersionEqual()) {
+                    return const SizedBox();
+                  }
+                  return Text(
+                    'The first trainer to create structured Tajmeat collections — updated weekly with new GAT questions.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: _white.withValues(alpha: 0.75),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      height: 1.6,
+                    ),
+                  );
+                },
               ),
-              const SizedBox(height: 32),
               _buildFeatureHighlights(),
             ],
           ),
@@ -935,10 +920,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _accentBlue.withValues(alpha: 0.15),
-                Colors.transparent,
-              ],
+              colors: [_accentBlue.withValues(alpha: 0.15), Colors.transparent],
             ),
           ),
         ),
@@ -948,19 +930,12 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             color: _white.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: _gold.withValues(alpha: 0.4),
-              width: 2,
-            ),
+            border: Border.all(color: _gold.withValues(alpha: 0.4), width: 2),
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.library_books_rounded,
-                color: _gold,
-                size: 40,
-              ),
+              Icon(Icons.library_books_rounded, color: _gold, size: 40),
               const SizedBox(height: 8),
               Container(
                 width: 60,
@@ -991,11 +966,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             ],
           ),
         ),
-        Positioned(
-          top: 10,
-          right: 30,
-          child: _buildNotificationBubble(),
-        ),
+        Positioned(top: 10, right: 30, child: _buildNotificationBubble()),
       ],
     );
   }
@@ -1004,9 +975,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [_gold, _lightGold],
-        ),
+        gradient: const LinearGradient(colors: [_gold, _lightGold]),
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -1046,20 +1015,14 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           ],
         ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _accentBlue.withValues(alpha: 0.4),
-          width: 1,
-        ),
+        border: Border.all(color: _accentBlue.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
             padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: _gold,
-              shape: BoxShape.circle,
-            ),
+            decoration: BoxDecoration(color: _gold, shape: BoxShape.circle),
             child: const Icon(Icons.update_rounded, color: _deepBlue, size: 12),
           ),
           const SizedBox(width: 8),
@@ -1083,7 +1046,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       {'icon': Icons.refresh_rounded, 'text': 'Weekly Updates'},
       {'icon': Icons.quiz_rounded, 'text': 'Real Questions'},
     ];
-    
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: features.map((feature) {
@@ -1134,7 +1097,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               _buildCTAIllustration(),
-              const SizedBox(height: 48),
+              const SizedBox(height: 40),
               const Text(
                 'Start Preparing\nToday',
                 textAlign: TextAlign.center,
@@ -1146,18 +1109,30 @@ class _OnboardingScreenState extends State<OnboardingScreen>
                   letterSpacing: -0.5,
                 ),
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Join thousands of students achieving their dream scores',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: _white.withValues(alpha: 0.75),
-                  fontSize: 16,
-                  fontWeight: FontWeight.w400,
-                  height: 1.5,
-                ),
+              Consumer<AppConfigService>(
+                builder: (context, appConfig, _) {
+                  if (appConfig.isInReviewVersionEqual()) {
+                    return const SizedBox();
+                  }
+                  return Column(
+                    children: [
+                      const SizedBox(height: 16),
+                      Text(
+                        'Join thousands of students achieving their dream scores',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: _white.withValues(alpha: 0.75),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w400,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
-              const SizedBox(height: 48),
+
+              const SizedBox(height: 40),
               _buildPrimaryButton(
                 'Create Account',
                 Icons.person_add_rounded,
@@ -1186,10 +1161,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [
-                _gold.withValues(alpha: 0.2),
-                Colors.transparent,
-              ],
+              colors: [_gold.withValues(alpha: 0.2), Colors.transparent],
             ),
           ),
         ),
@@ -1221,7 +1193,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildPrimaryButton(String text, IconData icon, VoidCallback onPressed) {
+  Widget _buildPrimaryButton(
+    String text,
+    IconData icon,
+    VoidCallback onPressed,
+  ) {
     return SizedBox(
       width: double.infinity,
       height: 58,
@@ -1265,7 +1241,11 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     );
   }
 
-  Widget _buildSecondaryButton(String text, IconData icon, VoidCallback onPressed) {
+  Widget _buildSecondaryButton(
+    String text,
+    IconData icon,
+    VoidCallback onPressed,
+  ) {
     return SizedBox(
       width: double.infinity,
       height: 58,
@@ -1273,10 +1253,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _white.withValues(alpha: 0.4),
-            width: 2,
-          ),
+          border: Border.all(color: _white.withValues(alpha: 0.4), width: 2),
         ),
         child: Material(
           color: Colors.transparent,
@@ -1308,7 +1285,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   Widget _buildBottomSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 16, 32, 32),
+      padding: const EdgeInsets.fromLTRB(32, 8, 32, 12),
       child: Column(
         children: [
           _buildPageIndicator(),
@@ -1320,7 +1297,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       ),
     );
   }
-
+//
   Widget _buildPageIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

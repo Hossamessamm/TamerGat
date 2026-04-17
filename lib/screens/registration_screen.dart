@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../services/app_config_service.dart';
 import '../services/auth_service.dart';
 import '../widgets/custom_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -26,7 +27,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final _parentPhoneController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
+
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -64,8 +65,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         password: _passwordController.text,
         confirmPassword: _confirmPasswordController.text,
         phoneNumber: _phoneNumberController.text.trim(),
-        parentPhone: _parentPhoneController.text.trim().isNotEmpty 
-            ? _parentPhoneController.text.trim() 
+        parentPhone: _parentPhoneController.text.trim().isNotEmpty
+            ? _parentPhoneController.text.trim()
             : null,
         academicYear: null,
         sectionId: null,
@@ -97,10 +98,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(error),
-            backgroundColor: Colors.redAccent,
-          ),
+          SnackBar(content: Text(error), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -122,11 +120,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Color(0xFFFAFBFF),
-                Color(0xFFF8FAFC),
-                Colors.white,
-              ],
+              colors: [Color(0xFFFAFBFF), Color(0xFFF8FAFC), Colors.white],
               stops: [0.0, 0.4, 1.0],
             ),
           ),
@@ -135,11 +129,18 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             child: Column(
               children: [
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: padding, vertical: 8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: padding,
+                    vertical: 8,
+                  ),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: _deepBlue),
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 20,
+                          color: _deepBlue,
+                        ),
                         onPressed: _goToLogin,
                       ),
                       const Spacer(),
@@ -175,7 +176,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 child: ClipRRect(
                                   borderRadius: BorderRadius.circular(14),
                                   child: Image.asset(
-                                  'assets/Screenshot_2.png',
+                                    'assets/Screenshot_2.png',
                                     fit: BoxFit.contain,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
@@ -185,7 +186,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                             begin: Alignment.topLeft,
                                             end: Alignment.bottomRight,
                                           ),
-                                          borderRadius: BorderRadius.circular(20),
+                                          borderRadius: BorderRadius.circular(
+                                            20,
+                                          ),
                                         ),
                                         child: const Icon(
                                           Icons.school_rounded,
@@ -221,7 +224,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                             ),
                             const SizedBox(height: 24),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 24,
+                                vertical: 24,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(24),
@@ -246,7 +252,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                       label: 'Full Name',
                                       controller: _nameController,
                                       prefixIcon: Icons.person_outlined,
-                                      validator: (v) => (v == null || v.isEmpty) ? 'Please enter your name' : null,
+                                      validator: (v) => (v == null || v.isEmpty)
+                                          ? 'Please enter your name'
+                                          : null,
                                     ),
                                     const SizedBox(height: 14),
                                     CustomTextField(
@@ -255,32 +263,58 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                       keyboardType: TextInputType.emailAddress,
                                       prefixIcon: Icons.email_outlined,
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Please enter your email';
-                                        if (!v.contains('@')) return 'Please enter a valid email';
+                                        if (v == null || v.isEmpty) {
+                                          return 'Please enter your email';
+                                        }
+                                        if (!v.contains('@')) {
+                                          return 'Please enter a valid email';
+                                        }
                                         return null;
                                       },
                                     ),
-                                    const SizedBox(height: 14),
-                                    CustomTextField(
-                                      label: 'Phone Number',
-                                      controller: _phoneNumberController,
-                                      keyboardType: TextInputType.phone,
-                                      prefixIcon: Icons.phone_outlined,
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Please enter your phone number';
-                                        return null;
-                                      },
-                                    ),
-                                    const SizedBox(height: 14),
-                                    CustomTextField(
-                                      label: 'Parent Phone Number',
-                                      controller: _parentPhoneController,
-                                      keyboardType: TextInputType.phone,
-                                      prefixIcon: Icons.phone_android_outlined,
-                                      validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Please enter parent phone number';
-                                        return null;
-                                      },
+                                    Consumer<AppConfigService>(
+                                      builder: (context, appConfig, _) =>
+                                          appConfig.isInReviewVersionEqual()
+                                          ? const SizedBox.shrink()
+                                          : Column(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const SizedBox(height: 14),
+                                                CustomTextField(
+                                                  label: 'Phone Number',
+                                                  controller:
+                                                      _phoneNumberController,
+                                                  keyboardType:
+                                                      TextInputType.phone,
+                                                  prefixIcon:
+                                                      Icons.phone_outlined,
+                                                  validator: (v) {
+                                                    if (v == null ||
+                                                        v.isEmpty) {
+                                                      return 'Please enter your phone number';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                                const SizedBox(height: 14),
+                                                CustomTextField(
+                                                  label: 'Parent Phone Number',
+                                                  controller:
+                                                      _parentPhoneController,
+                                                  keyboardType:
+                                                      TextInputType.phone,
+                                                  prefixIcon: Icons
+                                                      .phone_android_outlined,
+                                                  validator: (v) {
+                                                    if (v == null ||
+                                                        v.isEmpty) {
+                                                      return 'Please enter parent phone number';
+                                                    }
+                                                    return null;
+                                                  },
+                                                ),
+                                              ],
+                                            ),
                                     ),
                                     const SizedBox(height: 14),
                                     CustomTextField(
@@ -290,15 +324,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                       prefixIcon: Icons.lock_outlined,
                                       suffixIcon: IconButton(
                                         icon: Icon(
-                                          _obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          _obscurePassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
                                           color: const Color(0xFF94A3B8),
                                           size: 22,
                                         ),
-                                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                                        onPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
                                       ),
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Please enter your password';
-                                        if (v.length < 6) return 'Password must be at least 6 characters';
+                                        if (v == null || v.isEmpty)
+                                          return 'Please enter your password';
+                                        if (v.length < 6)
+                                          return 'Password must be at least 6 characters';
                                         return null;
                                       },
                                     ),
@@ -310,15 +351,22 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                       prefixIcon: Icons.lock_outlined,
                                       suffixIcon: IconButton(
                                         icon: Icon(
-                                          _obscureConfirmPassword ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+                                          _obscureConfirmPassword
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
                                           color: const Color(0xFF94A3B8),
                                           size: 22,
                                         ),
-                                        onPressed: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
+                                        onPressed: () => setState(
+                                          () => _obscureConfirmPassword =
+                                              !_obscureConfirmPassword,
+                                        ),
                                       ),
                                       validator: (v) {
-                                        if (v == null || v.isEmpty) return 'Please confirm your password';
-                                        if (v != _passwordController.text) return 'Passwords do not match';
+                                        if (v == null || v.isEmpty)
+                                          return 'Please confirm your password';
+                                        if (v != _passwordController.text)
+                                          return 'Passwords do not match';
                                         return null;
                                       },
                                     ),
@@ -330,7 +378,8 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                     ),
                                     const SizedBox(height: 24),
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         const Text(
                                           'Already have an account? ',

@@ -83,7 +83,7 @@ class _GradeCoursesScreenState extends State<GradeCoursesScreen> {
 
       final response = await CourseService.getFilteredCourses(
         teacherId: widget.teacherId,
-        gradeId: gradeParam,
+        gradeId: gradeParam ??'',
         token: token,
         pageNumber: _currentPage,
         pageSize: _pageSize,

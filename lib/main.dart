@@ -16,6 +16,8 @@ import 'config/app_route_observer.dart';
 import 'services/payment_deep_link_controller.dart';
 import 'utils/app_theme.dart';
 import 'utils/http_client_helper.dart';
+import 'services/app_config_service.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// Global HTTP override to handle self-signed SSL certificates
 class MyHttpOverrides extends HttpOverrides {
@@ -52,6 +54,8 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   late final AuthService _authService;
   late final ApiDebugService _apiDebugService;
+  late final AppConfigService _appConfigService;
+  bool _forceUpdateDialogShown = false;
   bool _isInitialized = false;
   bool _showOnboarding = false;
 
@@ -61,6 +65,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _authService = AuthService();
     _apiDebugService = ApiDebugService();
+    _appConfigService = AppConfigService()..addListener(_onAppConfigLoaded);
     // Use post-frame callback to ensure UI is built first, then initialize
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initializeApp();
@@ -70,6 +75,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   @override
   void dispose() {
     PaymentDeepLinkController.instance.dispose();
+    _appConfigService.removeListener(_onAppConfigLoaded);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -113,14 +119,14 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     // If not authenticated but app was initialized, re-initialize to check SharedPreferences
     if (!_authService.isAuthenticated && _isInitialized) {
       print('⚠️ Not authenticated after resume, re-initializing...');
-      await _authService.init();
+      await Future.wait([_authService.init(), _appConfigService.fetchConfig()]);
     }
   }
 
   Future<void> _initializeApp() async {
     print('🚀 Starting app initialization...');
     try {
-      await _authService.init();
+      await Future.wait([_authService.init(), _appConfigService.fetchConfig()]);
       print('✅ AuthService initialization completed');
       print('✅ IsAuthenticated: ${_authService.isAuthenticated}');
       print('✅ User: ${_authService.currentUser?.userName}');
@@ -157,27 +163,49 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     }
   }
 
+
+  void _onAppConfigLoaded() {
+    if (_forceUpdateDialogShown) return;
+    if (!_appConfigService.isLoaded) return;
+    if (!_appConfigService.isForceUpdateRequired()) return;
+
+    final ctx = appNavigatorKey.currentContext;
+    if (ctx == null) return;
+    _forceUpdateDialogShown = true;
+    showDialog(
+      context: ctx,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: const Text('Update Required'),
+          content: const Text(
+            'A new version of the app is available. Please update to continue.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                final url = Uri.parse(
+                  defaultTargetPlatform == TargetPlatform.iOS
+                      ? 'https://apps.apple.com/us/app/tamergat/id6761669724'
+                      : 'https://play.google.com/store/apps/details?id=com.educraft.tamergat',
+                );
+                if (await canLaunchUrl(url)) launchUrl(url, mode: LaunchMode.externalApplication);
+              },
+              child: const Text('Update Now'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
-    if (!_isInitialized) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        locale: const Locale('en'),
-        builder: (context, child) {
-          return Directionality(
-            textDirection: TextDirection.ltr,
-            child: child ?? const SizedBox.shrink(),
-          );
-        },
-        home: const SplashScreen(),
-      );
-    }
-
     return MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: _authService),
         ChangeNotifierProvider.value(value: _apiDebugService),
+        ChangeNotifierProvider.value(value: _appConfigService),
       ],
       child: MaterialApp(
         navigatorKey: appNavigatorKey,
@@ -193,7 +221,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             child: child ?? const SizedBox.shrink(),
           );
         },
-        home: _showOnboarding ? const OnboardingScreen() : const AppWithDebugButton(),
+        home:!_isInitialized?const SplashScreen():  _showOnboarding ? const OnboardingScreen() : const AppWithDebugButton(),
       ),
     );
   }
