@@ -154,7 +154,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _isInitialized = true;
-          _showOnboarding = true; // Show onboarding on error as fallback
+          _showOnboarding = true;
         });
         WidgetsBinding.instance.addPostFrameCallback((_) {
           PaymentDeepLinkController.instance.init(authService: _authService);

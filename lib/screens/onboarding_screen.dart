@@ -1297,7 +1297,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       ),
     );
   }
-//
+
   Widget _buildPageIndicator() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,

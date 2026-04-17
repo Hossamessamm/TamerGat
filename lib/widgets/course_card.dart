@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:tamergat_app/services/app_config_service.dart';
 import '../models/course_model.dart';
 import '../screens/course_details_screen.dart';
 import '../config/api_config.dart';
@@ -162,30 +164,41 @@ class CourseCard extends StatelessWidget {
                         ),
                       if (course.description != null && course.description!.isNotEmpty)
                         SizedBox(height: isTablet ? 12 : 6),
-                      
-                      // Price
-                      if (course.price != null) ...[
-                        SizedBox(height: isTablet ? 8 : 4),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.paid_rounded, size: descFontSize + 2, color: const Color(0xFF38026B)),
-                            SizedBox(width: isTablet ? 6 : 4),
-                            Text(
-                              course.price! == 0
-                                  ? 'Free'
-                                  : '${course.price!.toStringAsFixed(2)} EGP',
-                              style: TextStyle(
-                                fontSize: descFontSize + 1,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF38026B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                      
-                      SizedBox(height: isTablet ? 12 : 8),
+
+                      Consumer<AppConfigService>(
+                        builder: (context, appConfig, _) {
+                          if (!appConfig.isInReviewVersionEqual()) {
+                            return Column(
+                              children: [
+                                // Price
+                                if (course.price != null) ...[
+                                  SizedBox(height: isTablet ? 8 : 4),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.paid_rounded, size: descFontSize + 2, color: const Color(0xFF38026B)),
+                                      SizedBox(width: isTablet ? 6 : 4),
+                                      Text(
+                                        course.price! == 0
+                                            ? 'Free'
+                                            : '${course.price!.toStringAsFixed(2)} EGP',
+                                        style: TextStyle(
+                                          fontSize: descFontSize + 1,
+                                          fontWeight: FontWeight.w700,
+                                          color: const Color(0xFF38026B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+
+                                SizedBox(height: isTablet ? 12 : 8),
+                              ],
+                            );
+                          }
+                          return const SizedBox();
+                        },
+                      ),
                       
                       // View Details Button
                       Container(

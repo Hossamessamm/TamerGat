@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:screen_protector/screen_protector.dart';
+import 'package:tamergat_app/services/app_config_service.dart';
 import '../models/course_model.dart';
 import '../models/course_tree_model.dart';
 import '../services/auth_service.dart';
@@ -15,10 +16,7 @@ import 'checkout_screen.dart';
 class CourseDetailsScreen extends StatefulWidget {
   final Course course;
 
-  const CourseDetailsScreen({
-    super.key,
-    required this.course,
-  });
+  const CourseDetailsScreen({super.key, required this.course});
 
   @override
   State<CourseDetailsScreen> createState() => _CourseDetailsScreenState();
@@ -132,29 +130,33 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     return Directionality(
       textDirection: TextDirection.ltr,
       child: Scaffold(
-      backgroundColor: _bgLight,
-      body: Stack(
-        children: [
-          RefreshIndicator(
-            onRefresh: _refresh,
-            color: _primary,
-            child: CustomScrollView(
-              physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
-              slivers: [
-                _buildStickyHeader(padding, hPad),
-                SliverToBoxAdapter(child: _buildCourseHero(hPad)),
-                SliverToBoxAdapter(child: _buildCourseDescriptionAndPrice(hPad)),
-                SliverToBoxAdapter(
-                  key: ValueKey('content_${_courseTree != null}_$_isLoading'),
-                  child: _buildCurriculumTab(hPad),
+        backgroundColor: _bgLight,
+        body: Stack(
+          children: [
+            RefreshIndicator(
+              onRefresh: _refresh,
+              color: _primary,
+              child: CustomScrollView(
+                physics: const AlwaysScrollableScrollPhysics(
+                  parent: BouncingScrollPhysics(),
                 ),
-              ],
+                slivers: [
+                  _buildStickyHeader(padding, hPad),
+                  SliverToBoxAdapter(child: _buildCourseHero(hPad)),
+                  SliverToBoxAdapter(
+                    child: _buildCourseDescriptionAndPrice(hPad),
+                  ),
+                  SliverToBoxAdapter(
+                    key: ValueKey('content_${_courseTree != null}_$_isLoading'),
+                    child: _buildCurriculumTab(hPad),
+                  ),
+                ],
+              ),
             ),
-          ),
-          if (_isEnrolled != null) _buildStickyCta(hPad),
-        ],
+            if (_isEnrolled != null) _buildStickyCta(hPad),
+          ],
+        ),
       ),
-    ),
     );
   }
 
@@ -186,7 +188,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back_ios_new_rounded, size: 18, color: _textSecondary),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 18,
+                color: _textSecondary,
+              ),
             ),
           ),
         ),
@@ -206,7 +212,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   }
 
   Widget _buildCourseHero(double hPad) {
-    final hasImage = widget.course.imagePath != null &&
+    final hasImage =
+        widget.course.imagePath != null &&
         widget.course.imagePath!.isNotEmpty &&
         ApiConfig.getImageUrl(widget.course.imagePath!).isNotEmpty;
 
@@ -247,71 +254,86 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
 
   Widget _buildImagePlaceholder() {
     return Center(
-      child: Icon(Icons.menu_book_rounded, size: 64, color: _primary.withValues(alpha: 0.3)),
+      child: Icon(
+        Icons.menu_book_rounded,
+        size: 64,
+        color: _primary.withValues(alpha: 0.3),
+      ),
     );
   }
 
   Widget _buildCourseDescriptionAndPrice(double hPad) {
-    final hasDescription = widget.course.description != null &&
-        widget.course.description!.trim().isNotEmpty;
-    final hasPrice = widget.course.price != null;
+    return Consumer<AppConfigService>(
+      builder: (context, appConfig, _) {
+        if(appConfig.isInReviewVersionEqual()){
+          return const SizedBox();
+        }
+        final hasDescription =
+            widget.course.description != null &&
+            widget.course.description!.trim().isNotEmpty;
+        final hasPrice = widget.course.price != null;
 
-    if (!hasDescription && !hasPrice) return const SizedBox.shrink();
+        if (!hasDescription && !hasPrice) return const SizedBox.shrink();
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (hasPrice) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: _primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _primary.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.paid_rounded, size: 20, color: _primary),
-                  const SizedBox(width: 8),
-                  Text(
-                    widget.course.price! == 0
-                        ? 'Free'
-                        : '${widget.course.price!.toStringAsFixed(2)} EGP',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: _primary,
-                    ),
+        return Padding(
+          padding: EdgeInsets.fromLTRB(hPad, 0, hPad, 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (hasPrice ) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
                   ),
-                ],
-              ),
-            ),
-            if (hasDescription) const SizedBox(height: 16),
-          ],
-          if (hasDescription) ...[
-            const Text(
-              'About this course',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: _textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              widget.course.description!,
-              style: TextStyle(
-                fontSize: 14,
-                color: _textSecondary,
-                height: 1.5,
-              ),
-            ),
-          ],
-        ],
-      ),
+                  decoration: BoxDecoration(
+                    color: _primary.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: _primary.withValues(alpha: 0.2)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.paid_rounded, size: 20, color: _primary),
+                      const SizedBox(width: 8),
+                      Text(
+                        widget.course.price! == 0
+                            ? 'Free'
+                            : '${widget.course.price!.toStringAsFixed(2)} EGP',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: _primary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (hasDescription) const SizedBox(height: 16),
+              ],
+              if (hasDescription) ...[
+                const Text(
+                  'About this course',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: _textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  widget.course.description!,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: _textSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -343,13 +365,21 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 color: _primary.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.cloud_off_rounded, size: 48, color: _primary.withValues(alpha: 0.6)),
+              child: Icon(
+                Icons.cloud_off_rounded,
+                size: 48,
+                color: _primary.withValues(alpha: 0.6),
+              ),
             ),
             const SizedBox(height: 24),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 15, color: _textSecondary, height: 1.5),
+              style: TextStyle(
+                fontSize: 15,
+                color: _textSecondary,
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 24),
             Material(
@@ -364,9 +394,20 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.refresh_rounded, color: Colors.white, size: 20),
+                      Icon(
+                        Icons.refresh_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
-                      Text('Retry', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15)),
+                      Text(
+                        'Retry',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 15,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -383,7 +424,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.menu_book_rounded, size: 64, color: Colors.grey.shade300),
+            Icon(
+              Icons.menu_book_rounded,
+              size: 64,
+              color: Colors.grey.shade300,
+            ),
             const SizedBox(height: 20),
             Text(
               'No content available',
@@ -437,11 +482,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: _primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: _primary.withValues(alpha: 0.15)),
+                        border: Border.all(
+                          color: _primary.withValues(alpha: 0.15),
+                        ),
                       ),
                       child: Text(
                         '$completedInUnit/${unitLessons.length}',
@@ -460,10 +510,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                   final lesson = le.value;
                   final isLast = idx == unitLessons.length - 1;
 
-                  return _buildTimelineLesson(
-                    lesson: lesson,
-                    isLast: isLast,
-                  );
+                  return _buildTimelineLesson(lesson: lesson, isLast: isLast);
                 }),
               ],
             ),
@@ -474,10 +521,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     );
   }
 
-  Widget _buildTimelineLesson({
-    required Lesson lesson,
-    required bool isLast,
-  }) {
+  Widget _buildTimelineLesson({required Lesson lesson, required bool isLast}) {
     final type = lesson.type.toLowerCase();
     IconData iconData;
     String typeLabel;
@@ -507,11 +551,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     color: Colors.grey.shade200,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(
-                    iconData,
-                    size: 22,
-                    color: Colors.grey.shade600,
-                  ),
+                  child: Icon(iconData, size: 22, color: Colors.grey.shade600),
                 ),
                 if (!isLast)
                   Expanded(
@@ -584,9 +624,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     final resumeText = _isEnrolled!
         ? (firstLesson?.lessonName ?? 'Continue learning')
         : (widget.course.price != null && (widget.course.price ?? 0) > 0)
-            ? 'Buy now'
-            : 'Enroll in course';
-    final isPaidCourse = widget.course.price != null && (widget.course.price ?? 0) > 0;
+        ? 'Buy now'
+        : 'Enroll in course';
+    final isPaidCourse =
+        widget.course.price != null && (widget.course.price ?? 0) > 0;
     final ctaColor = _isEnrolled! ? _primary : const Color(0xFF059669);
 
     return Positioned(
@@ -597,7 +638,12 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           child: Container(
-            padding: EdgeInsets.fromLTRB(hPad, 20, hPad, 16 + MediaQuery.of(context).padding.bottom),
+            padding: EdgeInsets.fromLTRB(
+              hPad,
+              20,
+              hPad,
+              16 + MediaQuery.of(context).padding.bottom,
+            ),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
@@ -616,7 +662,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => CourseCurriculumScreen(course: widget.course),
+                        builder: (_) =>
+                            CourseCurriculumScreen(course: widget.course),
                       ),
                     );
                   } else {
@@ -638,7 +685,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           onEnrollmentSuccess: () {
                             setState(() => _isEnrolled = true);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Enrolled in course successfully')),
+                              const SnackBar(
+                                content: Text(
+                                  'Enrolled in course successfully',
+                                ),
+                              ),
                             );
                           },
                         ),
@@ -649,7 +700,10 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                 borderRadius: BorderRadius.circular(20),
                 child: Ink(
                   width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 18,
+                  ),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -688,8 +742,8 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                               _isEnrolled!
                                   ? Icons.play_arrow_rounded
                                   : isPaidCourse
-                                      ? Icons.payment_rounded
-                                      : Icons.add_rounded,
+                                  ? Icons.payment_rounded
+                                  : Icons.add_rounded,
                               color: Colors.white,
                               size: 24,
                             ),
@@ -699,7 +753,9 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _isEnrolled! ? 'Continue learning' : 'Start now',
+                                _isEnrolled!
+                                    ? 'Continue learning'
+                                    : 'Start now',
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w700,
@@ -731,7 +787,11 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 20),
+                        child: const Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                     ],
                   ),
@@ -744,4 +804,3 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
     );
   }
 }
-
