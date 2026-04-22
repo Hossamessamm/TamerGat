@@ -92,6 +92,16 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   Future<void> _checkEnrollment() async {
     try {
       if (!mounted) return;
+
+      final appConfigData = Provider.of<AppConfigService>(
+        context,
+        listen: false,
+      );
+      if (appConfigData.isInReviewVersionEqual()) {
+        if (mounted) setState(() => _isEnrolled = true);
+        return;
+      }
+
       final authService = Provider.of<AuthService>(context, listen: false);
       final token = authService.token;
       final userId = authService.currentUser?.id;
@@ -265,7 +275,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
   Widget _buildCourseDescriptionAndPrice(double hPad) {
     return Consumer<AppConfigService>(
       builder: (context, appConfig, _) {
-        if(appConfig.isInReviewVersionEqual()){
+        if (appConfig.isInReviewVersionEqual()) {
           return const SizedBox();
         }
         final hasDescription =
@@ -280,7 +290,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (hasPrice ) ...[
+              if (hasPrice) ...[
                 Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 14,
@@ -658,7 +668,7 @@ class _CourseDetailsScreenState extends State<CourseDetailsScreen> {
               color: Colors.transparent,
               child: InkWell(
                 onTap: () async {
-                  if (_isEnrolled!) {
+                  if (_isEnrolled == true) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
